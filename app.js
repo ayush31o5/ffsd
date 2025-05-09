@@ -1,133 +1,128 @@
+// app.js
 require('dotenv').config();
-const { MONGO_ATLAS, MONGO_LOCAL, NODE_ENV } = process.env;
-const MONGO = NODE_ENV === 'development' ? MONGO_LOCAL : MONGO_ATLAS;
 const path = require('path');
 const express = require('express');
-const mongoose = require('mongoose');
-const app = express();
-// session
 const session = require('express-session');
 const MongoDBStore = require('connect-mongodb-session')(session);
 const csrf = require('csurf');
 const flash = require('connect-flash');
 const multer = require('multer');
 const helmet = require('helmet');
-const compression = require('compression'); // necessary for heroku not aws,gcp,azure
-// const morgan = require("morgan");
-const { expressCspHeader, INLINE, NONE, SELF } = require('express-csp-header');
+const compression = require('compression');
+const { expressCspHeader } = require('express-csp-header');
 
-// store sessions in database
-const store = new MongoDBStore({
-  uri: MONGO,
-  collection: 'sessions',
-});
+const dbConnect = require('./util/dbConnect');
+const User = require('./models/user');
 
-const csrfProtection = csrf();
+const {
+  MONGO_ATLAS,
+  MONGO_LOCAL,
+  NODE_ENV = 'development',
+  SESSION_SECRET,
+  PORT = 4000
+} = process.env;
 
-const storage = multer.memoryStorage();
+const MONGO_URI = NODE_ENV === 'development'
+  ? MONGO_LOCAL
+  : MONGO_ATLAS;
 
-const fileFilter = (req, file, cb) => {
-  if (
-    file.mimetype === 'image/png' ||
-    file.mimetype === 'image/jpg' ||
-    file.mimetype === 'image/webp' ||
-    file.mimetype === 'image/jpeg'
-  ) {
-    cb(null, true);
-  } else {
-    cb(null, false);
-  }
-};
-////////////////////////////////////////////////////////////////////
+const app = express();
 
+// ─── View engine ─────────────────────────────────────────────
 app.set('view engine', 'ejs');
 app.set('views', 'views');
 
-const adminRoutes = require('./routes/admin.js');
-const shopRoutes = require('./routes/shop.js');
-const authRoutes = require('./routes/auth.js');
-
-const errorController = require('./controllers/error.js');
-const User = require('./models/user');
-
-// const accessLogStream = fs.createWriteStream(
-//   path.join(__dirname, "access.log"),
-//   { flags: "a" } // flags: a means the data will not be overwritten instead be appended
-// );
-
-app.use(helmet()); // secure the headers
+// ─── Security & performance ──────────────────────────────────
+app.use(helmet());
 app.use(compression());
-
 app.use(
   expressCspHeader({
     directives: {
+      'default-src': ["'self'"],
       'img-src': ["'self'", 'https://res.cloudinary.com'],
-    },
+      'script-src': ["'self'", 'https://cdn.jsdelivr.net']
+    }
   })
 );
 
+// ─── Body parsing, file uploads & static ─────────────────────
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(multer({ storage: storage, fileFilter: fileFilter }).single('image'));
+
+const storage = multer.memoryStorage();
+const fileFilter = (req, file, cb) => {
+  const ok = ['image/png', 'image/jpg', 'image/jpeg', 'image/webp']
+    .includes(file.mimetype);
+  cb(null, ok);
+};
+app.use(multer({ storage, fileFilter }).single('image'));
+
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/images', express.static(path.join(__dirname, 'images')));
-// session middleware
+
+// ─── Sessions, CSRF & Flash ──────────────────────────────────
+const store = new MongoDBStore({ uri: MONGO_URI, collection: 'sessions' });
 app.use(
   session({
-    secret: 'my secret',
+    secret: SESSION_SECRET || 'supersecret',
     resave: false,
     saveUninitialized: false,
-    store: store,
+    store
   })
 );
-
-app.use(csrfProtection);
+app.use(csrf());
 app.use(flash());
 
-// find current user
+// ─── Attach req.user if logged in ─────────────────────────────
 app.use((req, res, next) => {
-  if (!req.session.user) {
-    return next();
-  }
+  if (!req.session.user) return next();
   User.findById(req.session.user._id)
-    .then((user) => {
-      if (!user) {
-        return next();
-      }
-      req.user = user;
+    .then(user => {
+      if (user) req.user = user;
       next();
     })
-    .catch((err) => {
-      throw new Error(err);
-    });
+    .catch(next);
 });
 
-// CSRF Protection Middleware
+// ─── Expose auth & CSRF to all views ──────────────────────────
 app.use((req, res, next) => {
-  // locals allows to access variables inside views
   res.locals.isAuthenticated = req.session.isLoggedIn;
   res.locals.csrfToken = req.csrfToken();
   next();
 });
 
+// ─── Routes ───────────────────────────────────────────────────
+const superuserRoutes = require('./routes/superuser');
+const shopRoutes = require('./routes/shop');
+const authRoutes = require('./routes/auth');
+const errorController = require('./controllers/error');
+const adminRoutes = require('./routes/admin.js');
+
+// Mount your superuser/admin router
+app.use('/superuser', superuserRoutes);
+// If you prefer `/admin`, swap the line above to:
+// app.use('/admin', superuserRoutes);
 app.use('/admin', adminRoutes);
 app.use(shopRoutes);
 app.use(authRoutes);
 
+// Error pages
 app.get('/500', errorController.get500);
 app.use(errorController.get404);
 
-app.use((error, req, res, next) => {
-  res.redirect('/500');
+// ─── Global error handler ─────────────────────────────────────
+app.use((err, req, res, next) => {
+  console.error('Error caught by middleware:', err);
+  if (res.headersSent) return next(err);
+  res.status(500).render('500', { pageTitle: 'Error', path: '/500' });
 });
 
-const PORT = process.env.PORT || 4000;
-
-mongoose
-  .connect(MONGO, { useNewUrlParser: true, useUnifiedTopology: true })
-  .then((result) => {
-    app.listen(PORT);
-    console.log(`Server running on port ${PORT}`);
-    console.log(`Connected to ${NODE_ENV} Database`);
+// ─── Start server ─────────────────────────────────────────────
+dbConnect()
+  .then(() => {
+    app.listen(PORT, () => {
+      console.log(`🚀 Listening on port ${PORT}`);
+      console.log(`🗄️  Connected to ${NODE_ENV} DB`);
+    });
   })
-  .catch(console.err);
+  .catch(err => console.error('❌ DB connection failed:', err));

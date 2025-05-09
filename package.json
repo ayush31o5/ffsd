@@ -7,7 +7,8 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node app.js",
     "start-server": "node app.js",
-    "dev": "nodemon app.js"
+    "dev": "nodemon app.js",
+    "create-superuser": "node createSuperuser.js"
   },
   "author": "Samip Poudel",
   "license": "ISC",
@@ -15,9 +16,11 @@
     "nodemon": "^1.18.3"
   },
   "dependencies": {
+    "bcrypt": "^5.1.1",
     "bcryptjs": "^2.4.3",
     "body-parser": "^1.18.3",
     "cloudinary": "^1.23.0",
+    "commander": "^13.1.0",
     "compression": "^1.7.4",
     "connect-flash": "^0.1.1",
     "connect-mongodb-session": "^2.4.1",
@@ -31,6 +34,7 @@
     "express-validator": "^6.6.1",
     "helmet": "^4.2.0",
     "helmet-csp": "^3.2.0",
+    "inquirer": "^12.6.0",
     "mongodb": "^3.6.1",
     "mongoose": "^5.10.7",
     "morgan": "^1.10.0",

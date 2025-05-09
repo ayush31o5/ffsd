@@ -10,6 +10,10 @@ const userSchema = new Schema({
     type: String,
     required: true,
   },
+  isAdmin: {
+    type: Boolean,
+    default: false
+  },
   resetToken: String,
   resetTokenExpiration: Date,
   cart: {

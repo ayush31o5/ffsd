@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>
+        <%= pageTitle %>
+    </title>
+    <link rel="stylesheet" href="/css/admin.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+    <div class="dashboard-container">
+        <%- include('../includes/sidebar') %>
+
+            <main class="main">
+                <header class="header">
+                    <h1>Welcome, <%= user.name || user.email %>
+                    </h1>
+                    <p>Logged in as Super-User</p>
+                </header>
+
+                <!-- Summary Cards -->
+                <section class="cards">
+                    <div class="card">
+                        <h3>Total Users</h3>
+                        <p>
+                            <%= metrics.totalUsers %>
+                        </p>
+                    </div>
+                    <div class="card">
+                        <h3>New Sign-ups</h3>
+                        <p>
+                            <%= metrics.newSignups %>
+                        </p>
+                    </div>
+                    <div class="card">
+                        <h3>Total Revenue</h3>
+                        <p>₹<%= metrics.totalRevenue %>
+                        </p>
+                    </div>
+                    <div class="card">
+                        <h3>Pending Orders</h3>
+                        <p>
+                            <%= metrics.pendingOrders %>
+                        </p>
+                    </div>
+                </section>
+
+                <!-- Chart Data -->
+                <div id="chartData" data-ug-labels='<%= JSON.stringify(charts.userGrowth.labels) %>'
+                    data-ug-data='<%= JSON.stringify(charts.userGrowth.data) %>'
+                    data-st-labels='<%= JSON.stringify(charts.salesTrend.labels) %>'
+                    data-st-data='<%= JSON.stringify(charts.salesTrend.data) %>'>
+                </div>
+
+                <!-- Charts -->
+                <section class="charts">
+                    <div class="chart-container">
+                        <h4>User Growth (Last 6 Months)</h4>
+                        <canvas id="userGrowthChart"></canvas>
+                    </div>
+                    <div class="chart-container">
+                        <h4>Weekly Sales Trend</h4>
+                        <canvas id="salesTrendChart"></canvas>
+                    </div>
+                </section>
+            </main>
+    </div>
+
+    <script src="/js/admin-dashboard.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>
+        <%= pageTitle %>
+    </title>
+    <link rel="stylesheet" href="/css/admin.css">
+</head>
+
+<body>
+    <div class="dashboard-container">
+        <%- include('../includes/sidebar') %>
+
+            <main class="main">
+                <h1>All Orders</h1>
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>Order ID</th>
+                            <th>User Email</th>
+                            <th>Total</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% for (var i=0; i < orders.length; i++) { var o=orders[i]; var email='-' ; if (o.user &&
+                            o.user.email) { email=o.user.email; } var dateStr='' ; if (o.createdAt) { dateStr=new
+                            Date(o.createdAt).toLocaleDateString(); } %>
+                            <tr>
+                                <td>
+                                    <%= o._id %>
+                                </td>
+                                <td>
+                                    <%= email %>
+                                </td>
+                                <td>₹<%= o.totalPrice %>
+                                </td>
+                                <td>
+                                    <%= dateStr %>
+                                </td>
+                            </tr>
+                            <% } %>
+                    </tbody>
+                </table>
+            </main>
+    </div>
+</body>
+
+</html>

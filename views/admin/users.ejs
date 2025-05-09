@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>
+        <%= pageTitle %>
+    </title>
+    <link rel="stylesheet" href="/css/admin.css">
+</head>
+
+<body>
+    <div class="dashboard-container">
+        <%- include('../includes/sidebar') %>
+
+            <main class="main">
+                <h1>All Users</h1>
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>Email</th>
+                            <th>Name</th>
+                            <th>Admin?</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% for (var i=0; i < users.length; i++) { var u=users[i]; %>
+                            <tr>
+                                <td>
+                                    <%= u.email %>
+                                </td>
+                                <td>
+                                    <%= u.name || '-' %>
+                                </td>
+                                <td>
+                                    <%= u.isAdmin ? '✔' : '✖' %>
+                                </td>
+                            </tr>
+                            <% } %>
+                    </tbody>
+                </table>
+            </main>
+    </div>
+</body>
+
+</html>
